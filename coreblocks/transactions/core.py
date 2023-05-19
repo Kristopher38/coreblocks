@@ -10,6 +10,8 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
+from amaranth.lib.data import View
+
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from ._utils import *
 from ..utils import silence_mustuse
@@ -632,7 +634,7 @@ class Method(TransactionBase):
     """
 
     def __init__(
-        self, *, name: Optional[str] = None, i: MethodLayout = (), o: MethodLayout = (), nonexclusive: bool = False
+        self, *, name: Optional[str] = None, i: MethodLayout = {}, o: MethodLayout = {}, nonexclusive: bool = False
     ):
         """
         Parameters
@@ -657,8 +659,10 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = Record(i)
-        self.data_out = Record(o)
+        self.layout_in = from_method_layout(i)
+        self.layout_out = from_method_layout(o)
+        self.data_in = Signal(self.layout_in)
+        self.data_out = Signal(self.layout_out)
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in) == 0
@@ -682,7 +686,7 @@ class Method(TransactionBase):
         Method
             The freshly constructed `Method`.
         """
-        return Method(name=name, i=other.data_in.layout, o=other.data_out.layout)
+        return Method(name=name, i=other.layout_in, o=other.layout_out)
 
     def proxy(self, m: Module, method: "Method"):
         """Define as a proxy for another method.
@@ -703,7 +707,7 @@ class Method(TransactionBase):
         self.defined = True
 
     @contextmanager
-    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[Record]:
+    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[View]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -752,13 +756,13 @@ class Method(TransactionBase):
             m.d.comb += self.data_out.eq(out)
             with self.context(m):
                 with m.If(self.run):
-                    yield self.data_in
+                    yield View(self.layout_in, self.data_in)
         finally:
             self.defined = True
 
     def __call__(
         self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
-    ) -> Record:
+    ) -> View:
         """Call a method.
 
         Methods can only be called from transaction and method bodies.
@@ -806,7 +810,7 @@ class Method(TransactionBase):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
         enable_sig = Signal()
-        arg_rec = Record.like(self.data_in)
+        arg_rec = View(self.layout_in)
 
         if arg is not None and kwargs:
             raise ValueError("Method call with both keyword arguments and legacy record argument")
@@ -818,7 +822,7 @@ class Method(TransactionBase):
         TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
-        return self.data_out
+        return View(self.layout_out, self.data_out)
 
     def __repr__(self) -> str:
         return "(method {})".format(self.name)
@@ -884,11 +888,12 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """
 
     def decorator(func: Callable[..., Optional[RecordDict]]):
-        out = Record.like(method.data_out)
+        out = View(method.layout_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:
-            ret_out = method_def_helper(method, func, arg, **arg.fields)
+            fields = {k: arg[k] for k, _ in method.layout_in}
+            ret_out = method_def_helper(method, func, arg, **fields)
 
         if ret_out is not None:
             m.d.comb += assign(out, ret_out, fields=AssignType.ALL)

@@ -1,6 +1,7 @@
 from typing import Protocol, Sequence, Tuple, Type, TypeAlias, Iterable, Mapping, runtime_checkable
 from enum import Enum
 from amaranth import *
+from amaranth.lib.data import View
 from amaranth.hdl.ast import ShapeCastable, Statement, ValueCastable
 from amaranth.hdl.rec import Direction, Layout
 
@@ -10,9 +11,10 @@ ValueLike = Value | int | Enum | ValueCastable
 ShapeLike = Shape | ShapeCastable | int | range | Type[Enum]
 StatementLike: TypeAlias = Statement | Iterable["StatementLike"]
 LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str, ShapeLike | "LayoutLike", Direction]]
+StructLayoutDict: TypeAlias = Mapping[str, ShapeLike]
 
 # Internal Coreblocks types
-SignalBundle: TypeAlias = Signal | Record | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
+SignalBundle: TypeAlias = Signal | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
 
 

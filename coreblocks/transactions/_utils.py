@@ -3,13 +3,15 @@ import sys
 from inspect import Parameter, signature
 from typing import Callable, Iterable, Optional, TypeAlias, TypeVar, Mapping
 from amaranth import *
-from ..utils._typing import LayoutLike
+from amaranth.lib.data import StructLayout, View
+from ..utils._typing import StructLayoutDict
 from ..utils import OneHotSwitchDynamic
 
 __all__ = [
     "Scheduler",
     "_graph_ccs",
     "MethodLayout",
+    "from_method_layout",
     "ROGraph",
     "Graph",
     "GraphCC",
@@ -118,7 +120,14 @@ def _graph_ccs(gr: ROGraph[T]) -> list[GraphCC[T]]:
     return ccs
 
 
-MethodLayout: TypeAlias = LayoutLike
+MethodLayout: TypeAlias = StructLayout | StructLayoutDict
+
+
+def from_method_layout(layout: MethodLayout):
+    if isinstance(layout, StructLayout):
+        return layout
+    else:
+        return StructLayout(layout)
 
 
 def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> T:
@@ -130,7 +139,7 @@ def method_def_helper(method, func: Callable[..., T], arg=None, /, **kwargs) -> 
         len(parameters) == 1
         and "arg" in parameters
         and parameters["arg"].kind in {Parameter.POSITIONAL_OR_KEYWORD, Parameter.POSITIONAL_ONLY}
-        and parameters["arg"].annotation in {Parameter.empty, Record}
+        and parameters["arg"].annotation in {Parameter.empty, View}
     ):
         if arg is None:
             arg = kwargs

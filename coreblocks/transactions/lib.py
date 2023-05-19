@@ -1,8 +1,9 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
+from amaranth.lib.data import View
 from .core import *
 from .core import SignalBundle, RecordDict
-from ._utils import MethodLayout
+from ._utils import MethodLayout, from_method_layout
 from ..utils import ValueLike, assign, AssignType
 
 __all__ = [
@@ -119,9 +120,9 @@ class Forwarder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        reg = Record.like(self.read.data_out)
+        reg = View(self.read.layout_out)
         reg_valid = Signal()
-        read_value = Record.like(self.read.data_out)
+        read_value = View(self.read.layout_out)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
 
@@ -173,7 +174,7 @@ class ClickIn(Elaboratable):
         """
         self.get = Method(o=layout)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = View(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -229,7 +230,7 @@ class ClickOut(Elaboratable):
         """
         self.put = Method(i=layout)
         self.btn = Signal()
-        self.dat = Record(layout)
+        self.dat = View(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -250,8 +251,8 @@ class ClickOut(Elaboratable):
 
 
 class AdapterBase(Elaboratable):
-    data_in: Record
-    data_out: Record
+    data_in: View
+    data_out: View
 
     def __init__(self, iface: Method):
         self.iface = iface
@@ -289,8 +290,8 @@ class AdapterTrans(AdapterBase):
             The method to be called by the transaction.
         """
         super().__init__(iface)
-        self.data_in = Record.like(iface.data_in)
-        self.data_out = Record.like(iface.data_out)
+        self.data_in = View(iface.layout_in)
+        self.data_out = View(iface.layout_out)
 
     def elaborate(self, platform):
         m = Module()
@@ -335,8 +336,8 @@ class Adapter(AdapterBase):
             The output layout of the defined method.
         """
         super().__init__(Method(i=i, o=o))
-        self.data_in = Record.like(self.iface.data_out)
-        self.data_out = Record.like(self.iface.data_in)
+        self.data_in = View(self.iface.layout_out)
+        self.data_out = View(self.iface.layout_in)
 
     def elaborate(self, platform):
         m = Module()
@@ -394,9 +395,9 @@ class MethodTransformer(Elaboratable):
             If not present, output is not transformed.
         """
         if i_transform is None:
-            i_transform = (target.data_in.layout, lambda _, x: x)
+            i_transform = (target.layout_in, lambda _, x: x)
         if o_transform is None:
-            o_transform = (target.data_out.layout, lambda _, x: x)
+            o_transform = (target.layout_out, lambda _, x: x)
 
         self.target = target
         self.method = Method(i=i_transform[0], o=o_transform[0])
