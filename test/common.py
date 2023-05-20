@@ -6,13 +6,14 @@ from typing import Callable, Generic, Mapping, Union, Generator, TypeVar, Option
 
 from amaranth import *
 from amaranth.hdl.ast import Statement
+from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim import *
 from amaranth.sim.core import Command
 
 from coreblocks.transactions.core import SignalBundle, Method, TransactionModule
 from coreblocks.transactions.lib import AdapterBase, AdapterTrans
 from coreblocks.transactions._utils import method_def_helper
-from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, LayoutLike
+from coreblocks.utils import ValueLike, HasElaborate, HasDebugSignals, auto_debug_signals, StructLayoutDict
 from .gtkw_extension import write_vcd_ext
 
 
@@ -23,11 +24,11 @@ RecordIntDictRet = Mapping[str, Any]  # full typing hard to work with
 TestGen = Generator[Command | Value | Statement | None, Any, T]
 
 
-def data_layout(val: int) -> LayoutLike:
-    return [("data", val)]
+def data_layout(val: int) -> StructLayoutDict:
+    return {"data": val}
 
 
-def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
+def set_inputs(values: RecordValueDict, field: View) -> TestGen[None]:
     for name, value in values.items():
         if isinstance(value, dict):
             yield from set_inputs(value, getattr(field, name))
@@ -35,16 +36,20 @@ def set_inputs(values: RecordValueDict, field: Record) -> TestGen[None]:
             yield getattr(field, name).eq(value)
 
 
-def get_outputs(field: Record) -> TestGen[RecordIntDict]:
+def get_outputs(field: View) -> TestGen[RecordIntDict]:
     # return dict of all signal values in a record because amaranth's simulator can't read all
     # values of a Record in a single yield - it can only read Values (Signals)
     result = {}
-    for name, _, _ in field.layout:
-        val = getattr(field, name)
-        if isinstance(val, Signal):
+    layout = Layout.of(field)
+    assert(isinstance(layout, StructLayout))
+    for name, fld in layout:
+        val = field[name]
+        if isinstance(fld.shape, Layout):
+            result[name] = yield from get_outputs(View(fld.shape, val))
+        elif isinstance(val, Value):
             result[name] = yield val
-        else:  # field is a Record
-            result[name] = yield from get_outputs(val)
+        else:
+            raise TypeError
     return result
 
 

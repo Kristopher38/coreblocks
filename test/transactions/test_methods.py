@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import StructLayout, View
 from amaranth.sim import *
 
 from ..common import TestCaseWithSimulator, TestbenchIO, data_layout
@@ -15,8 +16,8 @@ class TestDefMethod(TestCaseWithSimulator):
     class TestModule(Elaboratable):
         def __init__(self, method_definition):
             self.method = Method(
-                i=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
-                o=[("foo1", 3), ("foo2", [("bar1", 4), ("bar2", 6)])],
+                i={"foo1": 3, "foo2": StructLayout({"bar1": 4, "bar2": 6})},
+                o={"foo1": 3, "foo2": StructLayout({"bar1": 4, "bar2": 6})},
             )
 
             self.method_definition = method_definition
@@ -57,7 +58,7 @@ class TestDefMethod(TestCaseWithSimulator):
         self.do_test_definition(definition)
 
     def test_fields_valid4(self):
-        def definition(arg: Record):
+        def definition(arg: View):
             return arg
 
         self.do_test_definition(definition)

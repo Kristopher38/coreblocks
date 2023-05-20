@@ -1,6 +1,6 @@
 from typing import Callable, Tuple, Optional
 from amaranth import *
-from amaranth.lib.data import View
+from amaranth.lib.data import StructLayout, View
 from .core import *
 from .core import SignalBundle, RecordDict
 from ._utils import MethodLayout, from_method_layout
@@ -120,9 +120,9 @@ class Forwarder(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        reg = View(self.read.layout_out)
+        reg = Signal(self.read.layout_out)
         reg_valid = Signal()
-        read_value = View(self.read.layout_out)
+        read_value = Signal(self.read.layout_out)
 
         self.write.schedule_before(self.read)  # to avoid combinational loops
 
@@ -174,7 +174,7 @@ class ClickIn(Elaboratable):
         """
         self.get = Method(o=layout)
         self.btn = Signal()
-        self.dat = View(from_method_layout(layout))
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -230,7 +230,7 @@ class ClickOut(Elaboratable):
         """
         self.put = Method(i=layout)
         self.btn = Signal()
-        self.dat = View(from_method_layout(layout))
+        self.dat = Signal(from_method_layout(layout))
 
     def elaborate(self, platform):
         m = Module()
@@ -326,7 +326,7 @@ class Adapter(AdapterBase):
         Data passed as argument to the defined method.
     """
 
-    def __init__(self, *, i: MethodLayout = (), o: MethodLayout = ()):
+    def __init__(self, *, i: MethodLayout = {}, o: MethodLayout = {}):
         """
         Parameters
         ----------
@@ -377,8 +377,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, Record], RecordDict]]] = None,
+        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, ValueLike], RecordDict]]] = None,
+        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, ValueLike], RecordDict]]] = None,
     ):
         """
         Parameters
@@ -448,7 +448,7 @@ class MethodFilter(Elaboratable):
             is false. If omitted, zero is returned.
         """
         if default is None:
-            default = Record.like(target.data_out)
+            default = C(0, target.layout_out)
 
         self.target = target
         self.method = Method.like(target)
@@ -458,7 +458,7 @@ class MethodFilter(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        ret = Record.like(self.target.data_out)
+        ret = Signal(self.target.layout_out)
         m.d.comb += assign(ret, self.default, fields=AssignType.ALL)
 
         @def_method(m, self.method)
@@ -500,10 +500,10 @@ class MethodProduct(Elaboratable):
             The product method.
         """
         if combiner is None:
-            combiner = (targets[0].data_out.layout, lambda _, x: x[0])
+            combiner = (targets[0].layout_out, lambda _, x: x[0])
         self.targets = targets
         self.combiner = combiner
-        self.method = Method(i=targets[0].data_in.layout, o=combiner[0])
+        self.method = Method(i=targets[0].layout_in, o=combiner[0])
 
     def elaborate(self, platform):
         m = Module()
@@ -539,17 +539,17 @@ class Collector(Elaboratable):
             List of methods from which results will be collected.
         """
         self.method_list = targets
-        layout = targets[0].data_out.layout
+        layout = targets[0].layout_out
         self.method = Method(o=layout)
 
         for method in targets:
-            if layout != method.data_out.layout:
+            if layout != method.layout_out:
                 raise Exception("Not all methods have this same layout")
 
     def elaborate(self, platform):
         m = Module()
 
-        m.submodules.forwarder = forwarder = Forwarder(self.method.data_out.layout)
+        m.submodules.forwarder = forwarder = Forwarder(self.method.layout_out)
 
         m.submodules.connect = ManyToOneConnectTrans(
             get_results=[get for get in self.method_list], put_result=forwarder.write
@@ -588,8 +588,8 @@ class ConnectTrans(Elaboratable):
         m = Module()
 
         with Transaction().body(m):
-            data1 = Record.like(self.method1.data_out)
-            data2 = Record.like(self.method2.data_out)
+            data1 = Signal(self.method1.layout_out)
+            data2 = Signal(self.method2.layout_out)
 
             Transaction.comb += data1.eq(self.method1(m, data2))
             Transaction.comb += data2.eq(self.method2(m, data1))
@@ -637,8 +637,8 @@ class ConnectAndTransformTrans(Elaboratable):
 
         m.submodules.transformer = transformer = MethodTransformer(
             self.method2,
-            i_transform=(self.method1.data_out.layout, self.i_fun),
-            o_transform=(self.method1.data_in.layout, self.o_fun),
+            i_transform=(self.method1.layout_out, self.i_fun),
+            o_transform=(self.method1.layout_in, self.o_fun),
         )
         m.submodules.connect = ConnectTrans(self.method1, transformer.method)
 
@@ -704,9 +704,6 @@ class CatTrans(Elaboratable):
         with Transaction().body(m):
             sdata1 = self.src1(m)
             sdata2 = self.src2(m)
-            ddata = Record.like(self.dst.data_in)
-            self.dst(m, ddata)
-
-            m.d.comb += ddata.eq(Cat(sdata1, sdata2))
+            self.dst(m, Cat(sdata1, sdata2))
 
         return m
