@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
-from amaranth.lib.data import Layout, StructLayout, View
+from amaranth.lib.data import Layout, View
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import AssignArg
@@ -713,7 +713,7 @@ class Method(TransactionBase):
         self.defined = True
 
     @contextmanager
-    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[View[StructLayout]]:
+    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)):
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -768,7 +768,7 @@ class Method(TransactionBase):
 
     def __call__(
         self, m: Module, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
-    ) -> View[StructLayout]:
+    ):
         """Call a method.
 
         Methods can only be called from transaction and method bodies.
