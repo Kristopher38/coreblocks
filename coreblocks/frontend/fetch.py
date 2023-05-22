@@ -38,7 +38,7 @@ class Fetch(Elaboratable):
         m = Module()
 
         m.submodules.fetch_target_queue = self.fetch_target_queue = BasicFifo(
-            layout=[("addr", self.gp.isa.xlen)], depth=2
+            layout={"addr": self.gp.isa.xlen}, depth=2
         )
 
         speculative_pc = Signal(self.gp.isa.xlen, reset=self.gp.start_pc)

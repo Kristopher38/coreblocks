@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View, StructLayout
 
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.params import *
@@ -26,7 +27,7 @@ class LSUDummyInternals(Elaboratable):
         Signals that `resultData` is valid.
     """
 
-    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: Record) -> None:
+    def __init__(self, gen_params: GenParams, bus: WishboneMaster, current_instr: View) -> None:
         """
         Parameters
         ----------
@@ -51,7 +52,7 @@ class LSUDummyInternals(Elaboratable):
         """Calculate Load/Store address as defined by RiscV spec"""
         return self.current_instr.s1_val + self.current_instr.imm
 
-    def prepare_bytes_mask(self, m: Module, addr: Signal) -> Signal:
+    def prepare_bytes_mask(self, m: Module, addr: Value):
         mask_len = self.gen_params.isa.xlen // self.bus.wb_params.granularity
         mask = Signal(mask_len)
         with m.Switch(self.current_instr.exec_fn.funct3):
@@ -63,7 +64,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += mask.eq(0xF)
         return mask
 
-    def postprocess_load_data(self, m: Module, raw_data: Signal, addr: Signal):
+    def postprocess_load_data(self, m: Module, raw_data: Value, addr: Value):
         data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B, Funct3.BU):
@@ -84,7 +85,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def prepare_data_to_save(self, m: Module, raw_data: Signal, addr: Signal):
+    def prepare_data_to_save(self, m: Module, raw_data: Value, addr: Value):
         data = Signal.like(raw_data)
         with m.Switch(self.current_instr.exec_fn.funct3):
             with m.Case(Funct3.B):
@@ -95,7 +96,7 @@ class LSUDummyInternals(Elaboratable):
                 m.d.comb += data.eq(raw_data)
         return data
 
-    def op_init(self, m: Module, op_initiated: Signal, is_store: bool):
+    def op_init(self, m: Module, op_initiated: Value, is_store: bool):
         addr = Signal(self.gen_params.isa.xlen)
         m.d.comb += addr.eq(self.calculate_addr())
 
@@ -130,7 +131,7 @@ class LSUDummyInternals(Elaboratable):
                     m.d.sync += self.loadedData.eq(0)
 
     def elaborate(self, platform):
-        def check_if_instr_ready(current_instr: Record, result_ready: Signal) -> Value:
+        def check_if_instr_ready(current_instr: View, result_ready: Signal) -> Value:
             """Check if all values needed by instruction are already calculated."""
             return (
                 (current_instr.rp_s1 == 0)
@@ -139,7 +140,7 @@ class LSUDummyInternals(Elaboratable):
                 & (result_ready == 0)
             )
 
-        def check_if_instr_is_load(current_instr: Record) -> Value:
+        def check_if_instr_is_load(current_instr: View) -> Value:
             return current_instr.exec_fn.op_type == OpType.LOAD
 
         m = Module()
@@ -236,7 +237,7 @@ class LSUDummy(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         m = Module()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = Record(self.lsu_layouts.rs_data_layout + [("valid", 1)])
+        current_instr = View(StructLayout({**self.lsu_layouts.rs_data_layout.members, "valid": 1}))
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 
@@ -249,7 +250,7 @@ class LSUDummy(FuncBlock, Elaboratable):
             return {"rs_entry_id": 0}
 
         @def_method(m, self.insert)
-        def _(rs_data: Record, rs_entry_id: Value):
+        def _(rs_data: View, rs_entry_id: Value):
             m.d.sync += assign(current_instr, rs_data)
             m.d.sync += current_instr.valid.eq(1)
 

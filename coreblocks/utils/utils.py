@@ -4,7 +4,8 @@ from typing import Iterable, Literal, Mapping, Optional, TypeAlias, cast, overlo
 from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
+from amaranth.lib.data import Layout, StructLayout, View
+from ._typing import ValueLike, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -272,8 +273,8 @@ def assign(
         yield lhs_val.eq(rhs_val)
 
 
-def layout_subset(layout: LayoutList, *, fields: set[str]) -> LayoutList:
-    return [item for item in layout if item[0] in fields]
+def layout_subset(layout: StructLayout, *, fields: set[str]) -> StructLayout:
+    return StructLayout({k: l for k, l in layout.members.items() if k in fields})
 
 
 def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
@@ -290,6 +291,9 @@ def flatten_signals(signals: SignalBundle) -> Iterable[Signal]:
     elif isinstance(signals, Record):
         for x in signals.fields.values():
             yield from flatten_signals(x)
+    elif isinstance(signals, View):
+        for x, _ in Layout.cast(Layout.of(signals)):
+            yield from flatten_signals(signals[x])
     else:
         yield signals
 

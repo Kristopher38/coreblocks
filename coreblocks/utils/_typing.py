@@ -14,7 +14,7 @@ LayoutLike = Layout | Sequence[Tuple[str, ShapeLike | "LayoutLike"] | Tuple[str,
 StructLayoutDict: TypeAlias = Mapping[str, ShapeLike]
 
 # Internal Coreblocks types
-SignalBundle: TypeAlias = Signal | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
+SignalBundle: TypeAlias = Signal | Record | View | Iterable["SignalBundle"] | Mapping[str, "SignalBundle"]
 LayoutList = list[Tuple[str, ShapeLike | "LayoutList"]]
 
 

@@ -1,6 +1,7 @@
 from typing import Sequence
 
 from amaranth import *
+from amaranth.lib.data import View
 
 from coreblocks.transactions import Method, Transaction
 from coreblocks.transactions.lib import FIFO, Forwarder
@@ -326,7 +327,7 @@ class RSInsertion(Elaboratable):
 
             for i, rs_insert in enumerate(self.rs_insert):
                 # connect only matching fields
-                arg = Record.like(rs_insert.data_in)
+                arg = View(rs_insert.layout_in)
                 m.d.comb += assign(arg, data, fields=AssignType.COMMON)
                 with m.If(instr.rs_selected == i):
                     rs_insert(m, arg)

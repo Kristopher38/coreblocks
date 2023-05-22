@@ -1,9 +1,10 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
+from amaranth.lib.data import StructLayout, View
 from coreblocks.transactions import Method, def_method
 from coreblocks.params import RSLayouts, GenParams, OpType
-from coreblocks.transactions.core import RecordDict
+from coreblocks.utils.utils import AssignArg
 
 __all__ = ["RS"]
 
@@ -15,12 +16,14 @@ class RS(Elaboratable):
         ready_for = ready_for or ((op for op in OpType),)
         self.gen_params = gen_params
         self.layouts = gen_params.get(RSLayouts)
-        self.internal_layout = [
-            ("rs_data", self.layouts.data_layout),
-            ("rec_full", 1),
-            ("rec_ready", 1),
-            ("rec_reserved", 1),
-        ]
+        self.internal_layout = StructLayout(
+            {
+                "rs_data": self.layouts.data_layout,
+                "rec_full": 1,
+                "rec_ready": 1,
+                "rec_reserved": 1,
+            }
+        )
 
         self.insert = Method(i=self.layouts.insert_in)
         self.select = Method(o=self.layouts.select_out)
@@ -31,7 +34,7 @@ class RS(Elaboratable):
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
         self.rs_entries = rs_entries
-        self.data = Array(Record(self.internal_layout) for _ in range(self.rs_entries))
+        self.data = Array(View(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform) -> Module:
         m = Module()
@@ -80,7 +83,7 @@ class RS(Elaboratable):
                         m.d.sync += record.rs_data.s2_val.eq(value)
 
         @def_method(m, self.take, ready=take_possible)
-        def _(rs_entry_id: Value) -> RecordDict:
+        def _(rs_entry_id: Value) -> AssignArg:
             record = self.data[rs_entry_id]
             m.d.sync += record.rec_reserved.eq(0)
             m.d.sync += record.rec_full.eq(0)
@@ -97,7 +100,7 @@ class RS(Elaboratable):
         for get_ready_list, ready_list in zip(self.get_ready_list, ready_lists):
 
             @def_method(m, get_ready_list, ready=ready_list.any())
-            def _() -> RecordDict:
+            def _() -> AssignArg:
                 return {"ready_list": ready_list}
 
         return m

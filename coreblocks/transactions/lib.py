@@ -1,8 +1,11 @@
-from typing import Callable, Tuple, Optional
+from collections.abc import Sequence, Callable
+from typing import Optional
 from amaranth import *
 from amaranth.lib.data import StructLayout, View
+
+from coreblocks.utils.utils import AssignArg
 from .core import *
-from .core import SignalBundle, RecordDict
+from .core import SignalBundle
 from ._utils import MethodLayout, from_method_layout
 from ..utils import ValueLike, assign, AssignType
 
@@ -251,8 +254,8 @@ class ClickOut(Elaboratable):
 
 
 class AdapterBase(Elaboratable):
-    data_in: View
-    data_out: View
+    data_in: View[StructLayout]
+    data_out: View[StructLayout]
 
     def __init__(self, iface: Method):
         self.iface = iface
@@ -377,8 +380,8 @@ class MethodTransformer(Elaboratable):
         self,
         target: Method,
         *,
-        i_transform: Optional[Tuple[MethodLayout, Callable[[Module, ValueLike], RecordDict]]] = None,
-        o_transform: Optional[Tuple[MethodLayout, Callable[[Module, ValueLike], RecordDict]]] = None,
+        i_transform: Optional[tuple[MethodLayout, Callable[[Module, View], AssignArg]]] = None,
+        o_transform: Optional[tuple[MethodLayout, Callable[[Module, View], AssignArg]]] = None,
     ):
         """
         Parameters
@@ -408,7 +411,7 @@ class MethodTransformer(Elaboratable):
         m = Module()
 
         @def_method(m, self.method)
-        def _(arg):
+        def _(arg: View):
             return self.o_fun(m, self.target(m, self.i_fun(m, arg)))
 
         return m
@@ -433,7 +436,7 @@ class MethodFilter(Elaboratable):
     """
 
     def __init__(
-        self, target: Method, condition: Callable[[Module, Record], ValueLike], default: Optional[RecordDict] = None
+        self, target: Method, condition: Callable[[Module, View], ValueLike], default: Optional[AssignArg] = None
     ):
         """
         Parameters
@@ -474,7 +477,7 @@ class MethodProduct(Elaboratable):
     def __init__(
         self,
         targets: list[Method],
-        combiner: Optional[Tuple[MethodLayout, Callable[[Module, list[Record]], RecordDict]]] = None,
+        combiner: Optional[tuple[MethodLayout, Callable[[Module, Sequence[View]], AssignArg]]] = None,
     ):
         """Method product.
 
@@ -612,8 +615,8 @@ class ConnectAndTransformTrans(Elaboratable):
         method1: Method,
         method2: Method,
         *,
-        i_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
-        o_fun: Optional[Callable[[Module, Record], RecordDict]] = None,
+        i_fun: Optional[Callable[[Module, View], AssignArg]] = None,
+        o_fun: Optional[Callable[[Module, View], AssignArg]] = None,
     ):
         """
         Parameters

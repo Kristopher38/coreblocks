@@ -10,9 +10,10 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
-from amaranth.lib.data import View
+from amaranth.lib.data import Layout, StructLayout, View
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
+from coreblocks.utils.utils import AssignArg
 from ._utils import *
 from ..utils import silence_mustuse
 from ..utils._typing import StatementLike, ValueLike, SignalBundle, HasElaborate
@@ -36,7 +37,6 @@ TransactionGraph: TypeAlias = Graph["Transaction"]
 TransactionGraphCC: TypeAlias = GraphCC["Transaction"]
 PriorityOrder: TypeAlias = dict["Transaction", int]
 TransactionScheduler: TypeAlias = Callable[["MethodMap", TransactionGraph, TransactionGraphCC, PriorityOrder], Module]
-RecordDict: TypeAlias = ValueLike | Mapping[str, "RecordDict"]
 TransactionOrMethod: TypeAlias = Union["Transaction", "Method"]
 
 
@@ -328,9 +328,9 @@ class TransactionManager(Elaboratable):
         graph = OwnershipGraph(fragment)
         method_map = MethodMap(self.transactions)
         for method, transactions in method_map.transactions_by_method.items():
-            if len(method.data_in) > len(method.data_out):
+            if len(method.data_in.as_value()) > len(method.data_out.as_value()):
                 direction = Direction.IN
-            elif len(method.data_in) < len(method.data_out):
+            elif len(method.data_in.as_value()) < len(method.data_out.as_value()):
                 direction = Direction.OUT
             else:
                 direction = Direction.INOUT
@@ -659,13 +659,19 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.layout_in = from_method_layout(i)
-        self.layout_out = from_method_layout(o)
-        self.data_in = Signal(self.layout_in)
-        self.data_out = Signal(self.layout_out)
+        self.data_in = View(from_method_layout(i))
+        self.data_out = View(from_method_layout(o))
         self.nonexclusive = nonexclusive
         if nonexclusive:
-            assert len(self.data_in) == 0
+            assert len(self.data_in.as_value()) == 0
+
+    @property
+    def layout_in(self):
+        return Layout.of(self.data_in)
+
+    @property
+    def layout_out(self):
+        return Layout.of(self.data_out)
 
     @staticmethod
     def like(other: "Method", *, name: Optional[str] = None) -> "Method":
@@ -707,7 +713,7 @@ class Method(TransactionBase):
         self.defined = True
 
     @contextmanager
-    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[View]:
+    def body(self, m: Module, *, ready: ValueLike = C(1), out: ValueLike = C(0, 0)) -> Iterator[View[StructLayout]]:
         """Define method body
 
         The `body` context manager can be used to define the actions
@@ -756,13 +762,13 @@ class Method(TransactionBase):
             m.d.comb += self.data_out.eq(out)
             with self.context(m):
                 with m.If(self.run):
-                    yield View(self.layout_in, self.data_in)
+                    yield self.data_in
         finally:
             self.defined = True
 
     def __call__(
-        self, m: Module, arg: Optional[RecordDict] = None, enable: ValueLike = C(1), /, **kwargs: RecordDict
-    ) -> View:
+        self, m: Module, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
+    ) -> View[StructLayout]:
         """Call a method.
 
         Methods can only be called from transaction and method bodies.
@@ -822,7 +828,7 @@ class Method(TransactionBase):
         TransactionBase.comb += assign(arg_rec, arg, fields=AssignType.ALL)
         TransactionBase.get().use_method(self, arg_rec, enable_sig)
 
-        return View(self.layout_out, self.data_out)
+        return self.data_out
 
     def __repr__(self) -> str:
         return "(method {})".format(self.name)
@@ -887,7 +893,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
             return {"res": arg.arg1 + arg.arg2}
     """
 
-    def decorator(func: Callable[..., Optional[RecordDict]]):
+    def decorator(func: Callable[..., Optional[AssignArg]]):
         out = View(method.layout_out)
         ret_out = None
 

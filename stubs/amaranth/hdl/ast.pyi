@@ -27,6 +27,9 @@ class ShapeCastable:
     def __new__(cls: type[T], *args, **kwargs) -> T:
         ...
 
+    def as_shape(self) -> Shape:
+        ...
+
 
 class Shape:
     """Bit width and signedness of a va"""

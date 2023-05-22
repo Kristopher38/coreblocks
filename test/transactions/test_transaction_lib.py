@@ -2,15 +2,16 @@ import random
 from operator import and_
 from functools import reduce
 from typing import TypeAlias
+from amaranth.lib.data import Layout, View
 from amaranth.sim import Settle
 from parameterized import parameterized
 
 from amaranth import *
 from coreblocks.transactions import *
-from coreblocks.transactions.core import RecordDict
 from coreblocks.transactions.lib import *
-from coreblocks.utils._typing import LayoutLike
+from coreblocks.utils._typing import StructLayoutDict
 from coreblocks.utils import ModuleConnector
+from coreblocks.utils.utils import AssignArg
 from ..common import (
     SimpleTestCircuit,
     TestCaseWithSimulator,
@@ -110,7 +111,7 @@ class TestForwarder(TestFifoBase):
 
 
 class ManyToOneConnectTransTestCircuit(Elaboratable):
-    def __init__(self, count: int, lay: LayoutLike):
+    def __init__(self, count: int, lay: StructLayoutDict):
         self.count = count
         self.lay = lay
         self.inputs = []
@@ -142,7 +143,7 @@ class TestManyToOneConnectTrans(TestCaseWithSimulator):
     def initialize(self):
         f1_size = 14
         f2_size = 3
-        self.lay = [("field1", f1_size), ("field2", f2_size)]
+        self.lay = {"field1": f1_size, "field2": f2_size}
 
         self.m = ManyToOneConnectTransTestCircuit(self.count, self.lay)
         random.seed(14)
@@ -239,20 +240,20 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: Module, v: Record) -> Record:
-            s = Record.like(v)
+        def itransform_rec(m: Module, v: View) -> View:
+            s = View(Layout.of(v))
             m.d.comb += s.data.eq(v.data + 1)
             return s
 
-        def otransform_rec(m: Module, v: Record) -> Record:
-            s = Record.like(v)
+        def otransform_rec(m: Module, v: View) -> View:
+            s = View(Layout.of(v))
             m.d.comb += s.data.eq(v.data - 1)
             return s
 
-        def itransform_dict(_, v: Record) -> RecordDict:
+        def itransform_dict(_, v: View) -> AssignArg:
             return {"data": v.data + 1}
 
-        def otransform_dict(_, v: Record) -> RecordDict:
+        def otransform_dict(_, v: View) -> AssignArg:
             return {"data": v.data - 1}
 
         if self.use_dicts:
@@ -269,11 +270,11 @@ class MethodTransformerTestCircuit(Elaboratable):
             ometh = Method(i=layout, o=layout)
 
             @def_method(m, imeth)
-            def _(arg: Record):
+            def _(arg: View):
                 return itransform(m, arg)
 
             @def_method(m, ometh)
-            def _(arg: Record):
+            def _(arg: View):
                 return otransform(m, arg)
 
             trans = MethodTransformer(

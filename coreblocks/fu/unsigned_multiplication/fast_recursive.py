@@ -117,7 +117,7 @@ class RecursiveUnsignedMul(MulBaseUnsigned):
 
     def elaborate(self, platform):
         m = Module()
-        m.submodules.fifo = fifo = FIFO([("o", 2 * self.gen.isa.xlen)], 2)
+        m.submodules.fifo = fifo = FIFO({"o": 2 * self.gen.isa.xlen}, 2)
 
         m.submodules.mul = mul = FastRecursiveMul(self.gen.isa.xlen, self.dsp_width)
 

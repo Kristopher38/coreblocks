@@ -41,7 +41,7 @@ class WakeupSelect(Elaboratable):
 
         with Transaction().body(m):
             ready = self.get_ready(m)
-            ready_width = len(ready)
+            ready_width = len(ready.as_value())
             last = Signal(range(ready_width))
             for i in range(ready_width):
                 with m.If(ready[i]):

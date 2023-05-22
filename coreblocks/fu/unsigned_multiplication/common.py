@@ -54,7 +54,7 @@ class DSPMulUnit(Elaboratable):
         """
         self.n = n = dsp_width
 
-        self.compute = Method(i=[("i1", n), ("i2", n)], o=[("o", 2 * n)])
+        self.compute = Method(i={"i1": n, "i2": n}, o={"o": 2 * n})
 
     def elaborate(self, platform):
         m = Module()

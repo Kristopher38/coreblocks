@@ -111,12 +111,12 @@ class MulUnit(FuncUnit, Elaboratable):
 
         m.submodules.result_fifo = result_fifo = FIFO(self.gen.get(FuncUnitLayouts).accept, 2)
         m.submodules.params_fifo = params_fifo = FIFO(
-            [
-                ("rob_id", self.gen.rob_entries_bits),
-                ("rp_dst", self.gen.phys_regs_bits),
-                ("negative_res", 1),
-                ("high_res", 1),
-            ],
+            {
+                "rob_id": self.gen.rob_entries_bits,
+                "rp_dst": self.gen.phys_regs_bits,
+                "negative_res": 1,
+                "high_res": 1,
+            },
             2,
         )
         m.submodules.decoder = decoder = self.mul_fn.get_decoder(self.gen)

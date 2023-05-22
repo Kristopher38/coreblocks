@@ -35,7 +35,7 @@ class Consumer(Elaboratable):
         self.data_bits = 8
 
         self.layout_in = data_layout(self.data_bits)
-        self.layout_out = []
+        self.layout_out = {}
 
         self.action = Method(i=self.layout_in, o=self.layout_out)
 

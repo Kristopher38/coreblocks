@@ -1,6 +1,8 @@
 from amaranth import *
 from dataclasses import dataclass
 
+from amaranth.lib.data import StructLayout, View
+
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign, bits_from_int
 from coreblocks.params.genparams import GenParams
@@ -222,7 +224,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = Record(self.csr_layouts.rs_data_layout + [("valid", 1)])
+        instr = View(StructLayout({**self.csr_layouts.rs_data_layout.members, "valid": 1}))
 
         m.d.comb += ready_to_process.eq(self.rob_empty & instr.valid & (instr.rp_s1 == 0))
 

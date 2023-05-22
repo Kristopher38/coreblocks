@@ -1,5 +1,6 @@
 from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+from amaranth.lib.data import StructLayout
 from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
 from typing import List
@@ -120,14 +121,16 @@ class WishboneMaster(Elaboratable):
 
     def generate_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
-        self.requestLayout = [
-            ("addr", wb_params.addr_width, DIR_FANIN),
-            ("data", wb_params.data_width, DIR_FANIN),
-            ("we", 1, DIR_FANIN),
-            ("sel", wb_params.data_width // wb_params.granularity, DIR_FANIN),
-        ]
+        self.requestLayout = StructLayout(
+            {
+                "addr": wb_params.addr_width,
+                "data": wb_params.data_width,
+                "we": 1,
+                "sel": wb_params.data_width // wb_params.granularity,
+            }
+        )
 
-        self.resultLayout = [("data", wb_params.data_width), ("err", 1)]
+        self.resultLayout = StructLayout({"data": wb_params.data_width, "err": 1})
 
     def elaborate(self, platform):
         m = Module()
@@ -224,14 +227,16 @@ class PipelinedWishboneMaster(Elaboratable):
 
     def generate_method_layouts(self, wb_params: WishboneParameters):
         # generate method layouts locally
-        self.request_in_layout = [
-            ("addr", wb_params.addr_width),
-            ("data", wb_params.data_width),
-            ("we", 1),
-            ("sel", wb_params.data_width // wb_params.granularity),
-        ]
+        self.request_in_layout = StructLayout(
+            {
+                "addr": wb_params.addr_width,
+                "data": wb_params.data_width,
+                "we": 1,
+                "sel": wb_params.data_width // wb_params.granularity,
+            }
+        )
 
-        self.result_out_layout = [("data", wb_params.data_width), ("err", 1)]
+        self.result_out_layout = StructLayout({"data": wb_params.data_width, "err": 1})
 
     def elaborate(self, platform):
         m = Module()

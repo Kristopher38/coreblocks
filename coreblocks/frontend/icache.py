@@ -3,6 +3,7 @@ import operator
 from typing import Protocol
 
 from amaranth import *
+from amaranth.lib.data import StructLayout
 from amaranth.utils import log2_int
 
 from coreblocks.transactions.core import def_method, Priority
@@ -17,7 +18,7 @@ from coreblocks.peripherals.wishbone import WishboneMaster
 __all__ = ["ICache", "ICacheBypass", "ICacheInterface", "SimpleWBCacheRefiller"]
 
 
-def extract_instr_from_word(m: Module, params: ICacheParameters, word: Signal, addr: Value):
+def extract_instr_from_word(m: Module, params: ICacheParameters, word: Value, addr: Value):
     instr_out = Signal(params.instr_width)
     if len(word) == 32:
         m.d.comb += instr_out.eq(word)
@@ -144,11 +145,13 @@ class ICache(Elaboratable, ICacheInterface):
         self.flush = Method()
         self.flush.add_conflict(self.issue_req, Priority.LEFT)
 
-        self.addr_layout = [
-            ("offset", self.params.offset_bits),
-            ("index", self.params.index_bits),
-            ("tag", self.params.tag_bits),
-        ]
+        self.addr_layout = StructLayout(
+            {
+                "offset": self.params.offset_bits,
+                "index": self.params.index_bits,
+                "tag": self.params.tag_bits,
+            }
+        )
 
     def deserialize_addr(self, raw_addr: Value) -> dict[str, Value]:
         return {

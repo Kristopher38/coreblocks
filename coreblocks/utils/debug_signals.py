@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 from ._typing import SignalBundle, HasDebugSignals
 from collections.abc import Collection, Mapping
 
@@ -43,12 +44,7 @@ def auto_debug_signals(thing) -> SignalBundle:
                 if smap:
                     return [smap]
                 return []
-            case Array():
-                for i, e in enumerate(thing):
-                    if isinstance(e, Record):
-                        e.name = f"[{i}]"
-                return [thing]
-            case Signal() | Record():
+            case Signal() | View() | Array():
                 return [thing]
             case _:
                 try:

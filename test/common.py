@@ -41,7 +41,7 @@ def get_outputs(field: View) -> TestGen[RecordIntDict]:
     # values of a Record in a single yield - it can only read Values (Signals)
     result = {}
     layout = Layout.of(field)
-    assert(isinstance(layout, StructLayout))
+    assert isinstance(layout, StructLayout)
     for name, fld in layout:
         val = field[name]
         if isinstance(fld.shape, Layout):
