@@ -45,7 +45,7 @@ class WakeupSelect(Elaboratable):
             ready_width = len(ready.as_value())
             last = Signal(range(ready_width))
             for i in range(ready_width):
-                with m.If(ready[i]):
+                with m.If(ready.ready_list[i]):
                     m.d.comb += last.eq(i)
 
             row = self.take_row(m, last)

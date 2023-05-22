@@ -362,7 +362,7 @@ class TestMethodFilter(TestCaseWithSimulator):
         self.initialize()
 
         def condition(_, v):
-            return v[0]
+            return v.data[0]
 
         self.tc = SimpleTestCircuit(MethodFilter(self.target.adapter.iface, condition))
         m = ModuleConnector(test_circuit=self.tc, target=self.target)
@@ -397,7 +397,7 @@ class MethodProductTestCircuit(Elaboratable):
 
         combiner = None
         if self.add_combiner:
-            combiner = (layout, lambda _, vs: {"data": sum(vs)})
+            combiner = (layout, lambda _, vs: {"data": sum(map(lambda x: x.data, vs))})
 
         m.submodules.product = product = MethodProduct(methods, combiner)
 

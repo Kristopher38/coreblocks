@@ -8,7 +8,7 @@ import operator
 
 from coreblocks.transactions import Method, def_method
 from coreblocks.transactions.lib import AdapterTrans
-from coreblocks.utils.utils import OneHotSwitchDynamic
+from coreblocks.utils.utils import OneHotSwitchDynamic, assign
 from coreblocks.utils.fifo import BasicFifo
 
 
@@ -135,7 +135,7 @@ class WishboneMaster(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        def FSMWBCycStart(request):  # noqa: N802
+        def FSMWBCycStart(request: View):  # noqa: N802
             # internal FSM function that starts Wishbone cycle
             m.d.sync += self.wbMaster.cyc.eq(1)
             m.d.sync += self.wbMaster.stb.eq(1)
@@ -161,7 +161,7 @@ class WishboneMaster(Elaboratable):
 
                 with self.request.body(m, ready=(self.ready & ~self.res_ready)) as request:
                     m.d.sync += self.ready.eq(0)
-                    m.d.sync += self.txn_req.connect(request)
+                    m.d.sync += assign(self.txn_req, request)
                     # do WBCycStart state in the same clock cycle
                     FSMWBCycStart(request)
 
