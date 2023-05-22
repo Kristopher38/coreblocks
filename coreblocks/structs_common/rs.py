@@ -20,7 +20,6 @@ class RS(Elaboratable):
             {
                 "rs_data": self.layouts.data_layout,
                 "rec_full": 1,
-                "rec_ready": 1,
                 "rec_reserved": 1,
             }
         )
@@ -41,15 +40,17 @@ class RS(Elaboratable):
 
         m.submodules.enc_select = PriorityEncoder(width=self.rs_entries)
 
-        for record in self.data:
-            m.d.comb += record.rec_ready.eq(
+        data_ready = Signal(self.rs_entries)
+
+        for i, record in enumerate(self.data):
+            m.d.comb += data_ready[i].eq(
                 ~record.rs_data.rp_s1.bool() & ~record.rs_data.rp_s2.bool() & record.rec_full.bool()
             )
 
         select_vector = Cat(~record.rec_reserved for record in self.data)
         select_possible = select_vector.any()
 
-        take_vector = Cat(record.rec_ready & record.rec_full for record in self.data)
+        take_vector = Cat(data_ready[i] & record.rec_full for i, record in enumerate(self.data))
         take_possible = take_vector.any()
 
         ready_lists = []
