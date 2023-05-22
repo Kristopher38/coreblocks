@@ -1,6 +1,7 @@
 from amaranth import *
+from amaranth.lib.data import View
 from coreblocks.transactions import Method, def_method, Priority
-from coreblocks.transactions._utils import MethodLayout
+from coreblocks.transactions._utils import MethodLayout, from_method_layout
 from coreblocks.utils._typing import ValueLike
 
 
@@ -33,7 +34,7 @@ class BasicFifo(Elaboratable):
 
         """
         self.layout = layout
-        self.width = len(Record(self.layout))
+        self.width = from_method_layout(self.layout).as_shape().width
         self.depth = depth
 
         self.read = Method(o=self.layout)
@@ -78,7 +79,7 @@ class BasicFifo(Elaboratable):
             m.d.sync += self.level.eq(0)
 
         @def_method(m, self.write, ready=self.write_ready)
-        def _(arg: Record) -> None:
+        def _(arg: View) -> None:
             m.d.comb += self.buff_wrport.addr.eq(self.write_idx)
             m.d.comb += self.buff_wrport.data.eq(arg)
             m.d.comb += self.buff_wrport.en.eq(1)

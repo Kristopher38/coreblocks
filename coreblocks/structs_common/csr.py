@@ -108,7 +108,7 @@ class CSRRegister(Elaboratable):
         self._fu_write = Method(i=csr_layouts._fu_write)
 
         self.value = Signal(gen_params.isa.xlen)
-        self.side_effects = Record({("read", 1), ("write", 1)})
+        self.side_effects = View(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
@@ -117,9 +117,9 @@ class CSRRegister(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        internal_method_layout = {("data", self.gen_params.isa.xlen), ("active", 1)}
-        write_internal = Record(internal_method_layout)
-        fu_write_internal = Record(internal_method_layout)
+        internal_method_layout = StructLayout({"data": self.gen_params.isa.xlen, "active": 1})
+        write_internal = View(internal_method_layout)
+        fu_write_internal = View(internal_method_layout)
 
         m.d.sync += self.side_effects.eq(0)
 

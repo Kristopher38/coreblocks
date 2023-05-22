@@ -3,7 +3,7 @@ import operator
 from typing import Protocol
 
 from amaranth import *
-from amaranth.lib.data import StructLayout
+from amaranth.lib.data import StructLayout, View
 from amaranth.utils import log2_int
 
 from coreblocks.transactions.core import def_method, Priority
@@ -160,7 +160,7 @@ class ICache(Elaboratable, ICacheInterface):
             "tag": raw_addr[-self.params.tag_bits :],
         }
 
-    def serialize_addr(self, addr: Record) -> Value:
+    def serialize_addr(self, addr: View) -> Value:
         return Cat(addr.offset, addr.index, addr.tag)
 
     def elaborate(self, platform) -> Module:
@@ -202,7 +202,7 @@ class ICache(Elaboratable, ICacheInterface):
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
-        request_addr = Record(self.addr_layout)
+        request_addr = View(self.addr_layout)
 
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
@@ -211,7 +211,7 @@ class ICache(Elaboratable, ICacheInterface):
         for i in OneHotSwitchDynamic(m, Cat(tag_hit)):
             m.d.comb += mem_out.eq(self.mem.data_rd_data[i])
 
-        instr_out = extract_instr_from_word(m, self.params, mem_out, request_addr[:])
+        instr_out = extract_instr_from_word(m, self.params, mem_out, request_addr.as_value())
 
         refill_error_saved = Signal()
         m.d.comb += needs_refill.eq(request_valid & ~tag_hit_any & ~refill_error_saved)
@@ -225,7 +225,7 @@ class ICache(Elaboratable, ICacheInterface):
             self.req_fifo.read(m)
             return self.res_fwd.read(m)
 
-        mem_read_addr = Record(self.addr_layout)
+        mem_read_addr = View(self.addr_layout)
         m.d.comb += assign(mem_read_addr, request_addr)
 
         @def_method(m, self.issue_req, ready=accepting_requests)

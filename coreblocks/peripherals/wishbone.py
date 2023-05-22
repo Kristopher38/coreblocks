@@ -1,6 +1,6 @@
 from amaranth import *
 from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
-from amaranth.lib.data import StructLayout
+from amaranth.lib.data import StructLayout, View
 from amaranth.lib.scheduler import RoundRobin
 from functools import reduce
 from typing import List
@@ -112,10 +112,10 @@ class WishboneMaster(Elaboratable):
 
         self.ready = Signal()
         self.res_ready = Signal()
-        self.result_data = Record(self.resultLayout)
+        self.result_data = View(self.resultLayout)
 
         # latched input signals
-        self.txn_req = Record(self.requestLayout)
+        self.txn_req = View(self.requestLayout)
 
         self.ports = list(self.wbMaster.fields.values())
 

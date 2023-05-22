@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 from ..transactions import Method, def_method
 from ..params import GenParams, ROBLayouts
 from ..params.dependencies import DependencyManager
@@ -14,7 +15,7 @@ class ReorderBuffer(Elaboratable):
         self.put = Method(i=layouts.data_layout, o=layouts.id_layout)
         self.mark_done = Method(i=layouts.id_layout)
         self.retire = Method(o=layouts.retire_layout)
-        self.data = Array(Record(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
+        self.data = Array(View(layouts.internal_layout) for _ in range(2**gen_params.rob_entries_bits))
         self.single_entry = Signal()
         connections = gen_params.get(DependencyManager)
         connections.add_dependency(ROBSingleKey(), self.single_entry)

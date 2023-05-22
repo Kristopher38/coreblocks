@@ -46,7 +46,7 @@ class RegAllocation(Elaboratable):
         m = Module()
 
         free_reg = Signal(self.gen_params.phys_regs_bits)
-        data_out = Record(self.output_layout)
+        data_out = View(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -94,7 +94,7 @@ class Renaming(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        data_out = Record(self.output_layout)
+        data_out = View(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -151,7 +151,7 @@ class ROBAllocation(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        data_out = Record(self.output_layout)
+        data_out = View(self.output_layout)
 
         with Transaction().body(m):
             instr = self.get_instr(m)
@@ -238,7 +238,7 @@ class RSSelection(Elaboratable):
             instr = self.get_instr(m)
             forwarder.write(m, instr)
 
-        data_out = Record(self.output_layout)
+        data_out = View(self.output_layout)
 
         for i, (alloc, optypes) in enumerate(self.rs_select):
             # checks if RS can perform this kind of operation

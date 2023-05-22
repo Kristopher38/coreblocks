@@ -766,9 +766,7 @@ class Method(TransactionBase):
         finally:
             self.defined = True
 
-    def __call__(
-        self, m: Module, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg
-    ):
+    def __call__(self, m: Module, arg: Optional[AssignArg] = None, enable: ValueLike = C(1), /, **kwargs: AssignArg):
         """Call a method.
 
         Methods can only be called from transaction and method bodies.

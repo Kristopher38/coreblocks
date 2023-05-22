@@ -60,7 +60,7 @@ class FIFO(Elaboratable):
             FIFO module conforming to Amaranth library FIFO interface. Defaults
             to SyncFIFO.
         """
-        self.width = len(Record(layout))
+        self.width = from_method_layout(layout).as_shape().width
         self.depth = depth
         self.fifoType = fifo_type
 

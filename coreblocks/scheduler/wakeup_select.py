@@ -1,4 +1,5 @@
 from amaranth import *
+from amaranth.lib.data import View
 
 from coreblocks.params import GenParams, FuncUnitLayouts
 from coreblocks.utils import assign, AssignType
@@ -48,7 +49,7 @@ class WakeupSelect(Elaboratable):
                     m.d.comb += last.eq(i)
 
             row = self.take_row(m, last)
-            issue_rec = Record(self.gen_params.get(FuncUnitLayouts).issue)
+            issue_rec = View(self.gen_params.get(FuncUnitLayouts).issue)
             m.d.comb += assign(issue_rec, row, fields=AssignType.ALL)
             self.issue(m, issue_rec)
 

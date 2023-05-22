@@ -101,7 +101,7 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += addr.eq(self.calculate_addr())
 
         bytes_mask = self.prepare_bytes_mask(m, addr)
-        req = Record(self.bus.requestLayout)
+        req = View(self.bus.requestLayout)
         m.d.comb += req.addr.eq(addr >> 2)  # calculate word address
         m.d.comb += req.we.eq(is_store)
         m.d.comb += req.sel.eq(bytes_mask)
