@@ -1,7 +1,7 @@
 from collections.abc import Sequence, Callable
 from typing import Optional
 from amaranth import *
-from amaranth.lib.data import StructLayout, View
+from amaranth.lib.data import View
 
 from coreblocks.utils.utils import AssignArg
 from .core import *
@@ -254,8 +254,8 @@ class ClickOut(Elaboratable):
 
 
 class AdapterBase(Elaboratable):
-    data_in: View[StructLayout]
-    data_out: View[StructLayout]
+    data_in: View
+    data_out: View
 
     def __init__(self, iface: Method):
         self.iface = iface
