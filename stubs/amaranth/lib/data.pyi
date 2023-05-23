@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterator, Mapping
 from enum import Enum
 from typing import Optional, TypeVar, Generic
+from typing_extensions import Self
 from amaranth.hdl import *
 from amaranth.hdl.ast import Assign, ShapeCastable, ValueCastable
 from coreblocks.utils._typing import ShapeLike, ValueLike
@@ -24,16 +25,8 @@ class Field:
     def shape(self) -> ShapeLike:
         ...
     
-    @shape.setter
-    def shape(self, shape: ShapeLike) -> None:
-        ...
-    
     @property
     def offset(self) -> int:
-        ...
-    
-    @offset.setter
-    def offset(self, offset: int) -> None:
         ...
     
     @property
@@ -48,7 +41,7 @@ class Field:
     
 
 
-class Layout(ShapeCastable, metaclass=ABCMeta):
+class Layout(ShapeCastable[View[Self]], metaclass=ABCMeta):
     @staticmethod
     def cast(obj: ShapeCastable) -> Layout:
         """Cast a shape-castable object to a layout."""
@@ -69,7 +62,9 @@ class Layout(ShapeCastable, metaclass=ABCMeta):
         """Retrieve the :class:`Field` associated with the ``key``, or raise ``KeyError``."""
         ...
     
-    size: int = ...
+    def size(self) -> int:
+        """Size of the layout."""
+        ...
 
     def as_shape(self) -> Shape:
         """Convert the representation defined by the layout to an unsigned :class:`Shape`."""
@@ -82,7 +77,15 @@ class Layout(ShapeCastable, metaclass=ABCMeta):
         The order of the fields is not considered.
         """
         ...
-    
+
+    def __call__(self, target: ValueLike) -> View[Self]:
+        """Create a view into a target."""
+        ...
+
+    def const(self, init) -> Const:
+        """Convert a constant initializer to a constant."""
+        ...
+
 
 class StructLayout(Layout):
     def __init__(self, members: Mapping[str, ShapeLike]) -> None:
@@ -205,7 +208,7 @@ class FlexibleLayout(Layout):
 
 
 class View(ValueCastable, Generic[_T_ShapeCastable]):
-    def __init__(self, layout: _T_ShapeCastable, target: Optional[ValueLike] = ..., *, name: Optional[str] = ..., reset: Optional[int | Enum] = ..., reset_less: Optional[bool] = ..., attrs : Optional[dict] = ..., decoder: Optional[type[Enum] | Callable[[int], str]] = ..., src_loc_at=...) -> None:
+    def __init__(self, layout: _T_ShapeCastable, target: ValueLike) -> None:
         ...
     
     @ValueCastable.lowermethod
@@ -223,7 +226,7 @@ class View(ValueCastable, Generic[_T_ShapeCastable]):
     
 
 
-class _AggregateMeta(ShapeCastable, type):
+class _AggregateMeta(ShapeCastable[Self], type):
     def __new__(metacls, name, bases, namespace, *, _layout_cls=..., **kwargs): # -> Self@_AggregateMeta:
         ...
     
@@ -231,18 +234,11 @@ class _AggregateMeta(ShapeCastable, type):
         ...
     
 
-
-class _Aggregate(View, metaclass=_AggregateMeta):
-    def __init__(self, target=..., *, name=..., reset=..., reset_less=..., attrs=..., decoder=..., src_loc_at=...) -> None:
-        ...
-    
-
-
-class Struct(_Aggregate, _layout_cls=StructLayout):
+class Struct(View, metaclass=_AggregateMeta):
     ...
 
 
-class Union(_Aggregate, _layout_cls=UnionLayout):
+class Union(View, metaclass=_AggregateMeta):
     ...
 
 

@@ -293,8 +293,8 @@ class AdapterTrans(AdapterBase):
             The method to be called by the transaction.
         """
         super().__init__(iface)
-        self.data_in = View(iface.layout_in)
-        self.data_out = View(iface.layout_out)
+        self.data_in = Signal(iface.layout_in)
+        self.data_out = Signal(iface.layout_out)
 
     def elaborate(self, platform):
         m = Module()
@@ -339,8 +339,8 @@ class Adapter(AdapterBase):
             The output layout of the defined method.
         """
         super().__init__(Method(i=i, o=o))
-        self.data_in = View(self.iface.layout_out)
-        self.data_out = View(self.iface.layout_in)
+        self.data_in = Signal(self.iface.layout_out)
+        self.data_out = Signal(self.iface.layout_in)
 
     def elaborate(self, platform):
         m = Module()

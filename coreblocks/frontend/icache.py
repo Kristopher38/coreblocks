@@ -202,7 +202,7 @@ class ICache(Elaboratable, ICacheInterface):
 
         # Fast path - read requests
         request_valid = self.req_fifo.read.ready
-        request_addr = View(self.addr_layout)
+        request_addr = Signal(self.addr_layout)
 
         tag_hit = [tag_data.valid & (tag_data.tag == request_addr.tag) for tag_data in self.mem.tag_rd_data]
         tag_hit_any = reduce(operator.or_, tag_hit)
@@ -225,7 +225,7 @@ class ICache(Elaboratable, ICacheInterface):
             self.req_fifo.read(m)
             return self.res_fwd.read(m)
 
-        mem_read_addr = View(self.addr_layout)
+        mem_read_addr = Signal(self.addr_layout)
         m.d.comb += assign(mem_read_addr, request_addr)
 
         @def_method(m, self.issue_req, ready=accepting_requests)

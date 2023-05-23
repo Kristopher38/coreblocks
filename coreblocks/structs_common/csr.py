@@ -1,7 +1,7 @@
 from amaranth import *
 from dataclasses import dataclass
 
-from amaranth.lib.data import StructLayout, View
+from amaranth.lib.data import StructLayout
 
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign, bits_from_int
@@ -108,7 +108,7 @@ class CSRRegister(Elaboratable):
         self._fu_write = Method(i=csr_layouts._fu_write)
 
         self.value = Signal(gen_params.isa.xlen)
-        self.side_effects = View(StructLayout({"read": 1, "write": 1}))
+        self.side_effects = Signal(StructLayout({"read": 1, "write": 1}))
 
         # append to global CSR list
         dm = gen_params.get(DependencyManager)
@@ -118,8 +118,8 @@ class CSRRegister(Elaboratable):
         m = Module()
 
         internal_method_layout = StructLayout({"data": self.gen_params.isa.xlen, "active": 1})
-        write_internal = View(internal_method_layout)
-        fu_write_internal = View(internal_method_layout)
+        write_internal = Signal(internal_method_layout)
+        fu_write_internal = Signal(internal_method_layout)
 
         m.d.sync += self.side_effects.eq(0)
 
@@ -224,7 +224,7 @@ class CSRUnit(FuncBlock, Elaboratable):
 
         current_result = Signal(self.gen_params.isa.xlen)
 
-        instr = View(StructLayout({**self.csr_layouts.rs_data_layout.members, "valid": 1}))
+        instr = Signal(StructLayout({**self.csr_layouts.rs_data_layout.members, "valid": 1}))
 
         m.d.comb += ready_to_process.eq(self.rob_empty & instr.valid & (instr.rp_s1 == 0))
 

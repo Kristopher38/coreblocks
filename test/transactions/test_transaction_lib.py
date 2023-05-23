@@ -2,7 +2,7 @@ import random
 from operator import and_
 from functools import reduce
 from typing import TypeAlias
-from amaranth.lib.data import Layout, View
+from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.sim import Settle
 from parameterized import parameterized
 
@@ -240,13 +240,13 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: Module, v: View) -> View:
-            s = View(Layout.of(v))
+        def itransform_rec(m: Module, v: View[StructLayout]):
+            s = Signal(Layout.of(v))
             m.d.comb += s.data.eq(v.data + 1)
             return s
 
-        def otransform_rec(m: Module, v: View) -> View:
-            s = View(Layout.of(v))
+        def otransform_rec(m: Module, v: View[StructLayout]):
+            s = Signal(Layout.of(v))
             m.d.comb += s.data.eq(v.data - 1)
             return s
 

@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
 from amaranth import *
 from amaranth.lib.coding import PriorityEncoder
-from amaranth.lib.data import StructLayout, View
+from amaranth.lib.data import StructLayout
 from coreblocks.transactions import Method, def_method
 from coreblocks.params import RSLayouts, GenParams, OpType
 from coreblocks.utils.utils import AssignArg
@@ -33,7 +33,7 @@ class RS(Elaboratable):
         self.get_ready_list = [Method(o=self.layouts.get_ready_list_out, nonexclusive=True) for _ in self.ready_for]
 
         self.rs_entries = rs_entries
-        self.data = Array(View(self.internal_layout) for _ in range(self.rs_entries))
+        self.data = Array(Signal(self.internal_layout) for _ in range(self.rs_entries))
 
     def elaborate(self, platform) -> Module:
         m = Module()

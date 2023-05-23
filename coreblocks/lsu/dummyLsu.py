@@ -101,7 +101,7 @@ class LSUDummyInternals(Elaboratable):
         m.d.comb += addr.eq(self.calculate_addr())
 
         bytes_mask = self.prepare_bytes_mask(m, addr)
-        req = View(self.bus.requestLayout)
+        req = Signal(self.bus.requestLayout)
         m.d.comb += req.addr.eq(addr >> 2)  # calculate word address
         m.d.comb += req.we.eq(is_store)
         m.d.comb += req.sel.eq(bytes_mask)
@@ -237,7 +237,7 @@ class LSUDummy(FuncBlock, Elaboratable):
     def elaborate(self, platform):
         m = Module()
         reserved = Signal()  # means that current_instr is reserved
-        current_instr = View(StructLayout({**self.lsu_layouts.rs_data_layout.members, "valid": 1}))
+        current_instr = Signal(StructLayout({**self.lsu_layouts.rs_data_layout.members, "valid": 1}))
 
         m.submodules.internal = internal = LSUDummyInternals(self.gen_params, self.bus, current_instr)
 

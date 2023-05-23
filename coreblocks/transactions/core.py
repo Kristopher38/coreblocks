@@ -10,7 +10,7 @@ from amaranth import tracer
 from amaranth.hdl.ast import Statement
 from itertools import count, chain
 
-from amaranth.lib.data import Layout, View
+from amaranth.lib.data import Layout, StructLayout, View
 
 from coreblocks.utils import AssignType, assign, ModuleConnector
 from coreblocks.utils.utils import AssignArg, OneHotSwitchDynamic
@@ -682,8 +682,8 @@ class Method(TransactionBase):
         self.name = name or tracer.get_var_name(depth=2, default=owner_name)
         self.ready = Signal()
         self.run = Signal()
-        self.data_in = View(from_method_layout(i))
-        self.data_out = View(from_method_layout(o))
+        self.data_in: View[StructLayout] = Signal(from_method_layout(i))
+        self.data_out: View[StructLayout] = Signal(from_method_layout(o))
         self.nonexclusive = nonexclusive
         if nonexclusive:
             assert len(self.data_in.as_value()) == 0
@@ -837,7 +837,7 @@ class Method(TransactionBase):
                 ret = my_sum_method(m, {"arg1": 2, "arg2": 3})
         """
         enable_sig = Signal()
-        arg_rec = View(self.layout_in)
+        arg_rec = Signal(self.layout_in)
 
         if arg is not None and kwargs:
             raise ValueError("Method call with both keyword arguments and legacy record argument")
@@ -915,7 +915,7 @@ def def_method(m: Module, method: Method, ready: ValueLike = C(1)):
     """
 
     def decorator(func: Callable[..., Optional[AssignArg]]):
-        out = View(method.layout_out)
+        out = Signal(method.layout_out)
         ret_out = None
 
         with method.body(m, ready=ready, out=out) as arg:

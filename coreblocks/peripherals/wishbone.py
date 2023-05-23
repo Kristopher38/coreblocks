@@ -112,10 +112,10 @@ class WishboneMaster(Elaboratable):
 
         self.ready = Signal()
         self.res_ready = Signal()
-        self.result_data = View(self.resultLayout)
+        self.result_data = Signal(self.resultLayout)
 
         # latched input signals
-        self.txn_req = View(self.requestLayout)
+        self.txn_req = Signal(self.requestLayout)
 
         self.ports = list(self.wbMaster.fields.values())
 
