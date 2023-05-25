@@ -5,7 +5,8 @@ from amaranth import *
 from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
 from amaranth.lib.data import Layout, StructLayout, View
-from ._typing import ValueLike, SignalBundle, HasElaborate
+from amaranth.utils import bits_for
+from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
 
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "bits_from_int",
     "ModuleConnector",
     "silence_mustuse",
+    "popcount",
 ]
 
 
@@ -270,6 +272,17 @@ def assign(
                     "Shapes not matching: lhs: {} {} rhs: {} {}".format(lhs_val.shape(), lhs, rhs_val.shape(), rhs)
                 )
         yield lhs_val.eq(rhs_val)
+
+
+def popcount(s: Value):
+    sum_layers = [s[i] for i in range(len(s))]
+
+    while len(sum_layers) > 1:
+        if len(sum_layers) % 2:
+            sum_layers.append(C(0))
+        sum_layers = [a + b for a, b in zip(sum_layers[::2], sum_layers[1::2])]
+
+    return sum_layers[0][0 : bits_for(len(s))]
 
 
 def layout_subset(layout: StructLayout, *, fields: set[str]) -> StructLayout:
