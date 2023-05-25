@@ -6,7 +6,7 @@ from amaranth.hdl.ast import Assign, ArrayProxy
 from amaranth.lib import data
 from amaranth.lib.data import Layout, StructLayout, View
 from amaranth.utils import bits_for
-from ._typing import ValueLike, LayoutList, SignalBundle, HasElaborate
+from ._typing import ValueLike, SignalBundle, HasElaborate
 
 
 __all__ = [

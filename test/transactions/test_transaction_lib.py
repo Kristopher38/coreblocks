@@ -240,12 +240,12 @@ class MethodTransformerTestCircuit(Elaboratable):
 
         layout = data_layout(self.iosize)
 
-        def itransform_rec(m: Module, v: View[StructLayout]):
+        def itransform_rec(m: Module, v: "View[StructLayout]"):
             s = Signal(Layout.of(v))
             m.d.comb += s.data.eq(v.data + 1)
             return s
 
-        def otransform_rec(m: Module, v: View[StructLayout]):
+        def otransform_rec(m: Module, v: "View[StructLayout]"):
             s = Signal(Layout.of(v))
             m.d.comb += s.data.eq(v.data - 1)
             return s

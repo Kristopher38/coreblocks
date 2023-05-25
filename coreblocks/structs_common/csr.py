@@ -2,6 +2,7 @@ from amaranth import *
 from dataclasses import dataclass
 
 from amaranth.lib.data import StructLayout
+from amaranth.lib.enum import Enum
 
 from coreblocks.transactions import Method, def_method, Transaction
 from coreblocks.utils import assign, bits_from_int
@@ -9,13 +10,13 @@ from coreblocks.params.genparams import GenParams
 from coreblocks.params.dependencies import DependencyManager, ListKey
 from coreblocks.params.fu_params import BlockComponentParams
 from coreblocks.params.layouts import FetchLayouts, FuncUnitLayouts, CSRLayouts
-from coreblocks.params.isa import BitEnum, Funct3
+from coreblocks.params.isa import Funct3
 from coreblocks.params.keys import BranchResolvedKey, ROBSingleKey
 from coreblocks.params.optypes import OpType
 from coreblocks.utils.protocols import FuncBlock
 
 
-class PrivilegeLevel(BitEnum, width=2):
+class PrivilegeLevel(Enum, shape=2):
     USER = 0b00
     SUPERVISOR = 0b01
     MACHINE = 0b11

@@ -95,10 +95,6 @@ class StructLayout(Layout):
     def members(self) -> dict[str, ShapeLike]:
         ...
     
-    @members.setter
-    def members(self, members: Mapping[str, ShapeLike]) -> None:
-        ...
-    
     def __iter__(self) -> Iterator[tuple[str, Field]]:
         ...
     
@@ -120,10 +116,6 @@ class UnionLayout(Layout):
     
     @property
     def members(self) -> dict[str, ShapeLike]:
-        ...
-    
-    @members.setter
-    def members(self, members: Mapping[str, ShapeLike]) -> None:
         ...
     
     def __iter__(self) -> Iterator[tuple[str, Field]]:
@@ -149,16 +141,8 @@ class ArrayLayout(Layout):
     def elem_shape(self) -> ShapeLike:
         ...
     
-    @elem_shape.setter
-    def elem_shape(self, elem_shape: ShapeLike) -> None:
-        ...
-    
     @property
     def length(self) -> int:
-        ...
-    
-    @length.setter
-    def length(self, length: int) -> None:
         ...
     
     def __iter__(self) -> Iterator[tuple[int, Field]]:
@@ -184,16 +168,8 @@ class FlexibleLayout(Layout):
     def size(self) -> int:
         ...
     
-    @size.setter
-    def size(self, size: int) -> None:
-        ...
-    
     @property
     def fields(self) -> dict[int | str, Field]:
-        ...
-    
-    @fields.setter
-    def fields(self, fields: Mapping[int | str, Field]) -> None:
         ...
     
     def __iter__(self) -> Iterator[tuple[int | str, Field]]:
