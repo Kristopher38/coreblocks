@@ -202,6 +202,7 @@ class LSUDummy(FuncBlock, Elaboratable):
         valid = Signal()  # current_instr is valid
         execute = Signal()  # start execution
         issued = Signal()  # instruction was issued to the bus
+        flush = Signal()  # exception handling, requests are not issued
         current_instr = Record(self.lsu_layouts.rs.data_layout)
 
         m.submodules.requester = requester = LSURequesterWB(self.gen_params, self.bus)
@@ -236,7 +237,8 @@ class LSUDummy(FuncBlock, Elaboratable):
                 m.d.sync += current_instr.s2_val.eq(reg_val)
                 m.d.sync += current_instr.rp_s2.eq(0)
 
-        with Transaction().body(m, request=instr_ready & ~issued & ~instr_is_fence & (execute | instr_is_load)):
+        do_issue = ~issued & instr_ready & ~flush & ~instr_is_fence & (execute | instr_is_load)
+        with Transaction().body(m, request=do_issue):
             m.d.sync += issued.eq(1)
             res = requester.issue(
                 m,
@@ -248,7 +250,8 @@ class LSUDummy(FuncBlock, Elaboratable):
             with m.If(res["exception"]):
                 results.write(m, data=0, exception=res["exception"], cause=res["cause"])
 
-        with Transaction().body(m, request=instr_ready & ~issued & instr_is_fence):
+        do_skip = ~issued & (instr_ready & ~flush & instr_is_fence | valid & flush)
+        with Transaction().body(m, request=do_skip):
             m.d.sync += issued.eq(1)
             results.write(m, data=0, exception=0, cause=0)
 
@@ -275,8 +278,10 @@ class LSUDummy(FuncBlock, Elaboratable):
             }
 
         @def_method(m, self.precommit)
-        def _(rob_id: Value):
-            with m.If(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
+        def _(rob_id: Value, side_fx: Value):
+            with m.If(~side_fx):
+                m.d.comb += flush.eq(1)
+            with m.Elif(valid & (rob_id == current_instr.rob_id) & ~instr_is_fence):
                 m.d.comb += execute.eq(1)
 
         return m
